@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.venv/
+venv/
+.sqlight3
+.idea/
+*.sqlite3
+*.sqlite
+*.db
