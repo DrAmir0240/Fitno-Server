@@ -1,8 +1,8 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from accounts.models import Customer, User
+from accounts.models import Customer, User, GymManager
+from gyms.models import Gym
 
 
 class CustomerRegisterSerializer(serializers.ModelSerializer):
@@ -94,3 +94,34 @@ class CustomerLoginSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
+
+
+class GymManagerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GymManager
+        fields = ['id', 'national_code', 'verification_code', 'balance', 'city', 'invitation_code']
+        read_only_fields = ['id', 'balance']
+
+    def create(self, validated_data):
+        # یوزر از کانتکست گرفته میشه
+        user = self.context['request'].user
+        return GymManager.objects.create(user=user, **validated_data)
+
+
+class GymSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Gym
+        fields = [
+            'id', 'title', 'location', 'address', 'main_img',
+            'phone', 'headline_phone', 'commission_type',
+            'facilities', 'description', 'work_hours_per_day', 'work_days_per_week'
+        ]
+        read_only_fields = ['id', 'manager']
+
+    def create(self, validated_data):
+        # مدیر از یوزر لاگین گرفته میشه
+        user = self.context['request'].user
+        gym_manager = getattr(user, 'gym_manager', None)
+        if not gym_manager:
+            raise serializers.ValidationError("این کاربر مدیر باشگاه نیست.")
+        return Gym.objects.create(manager=gym_manager, **validated_data)

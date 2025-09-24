@@ -13,6 +13,9 @@ class Gym(models.Model):
     main_img = models.ImageField(upload_to='gym_img/main_imgs')
     phone = models.CharField(max_length=50)
     headline_phone = models.CharField(max_length=50)
+    gender = models.CharField(max_length=50,
+                              choices=(('both', 'زنانه و مردانه'), ('female', 'زنانه'), ('male', 'مردانه')),
+                              default='male')
     commission_type = models.CharField(max_length=50, choices=(
         ('customer', 'مشتری'),
         ('gym', 'باشگاه')
