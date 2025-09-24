@@ -5,6 +5,14 @@ from accounts.models import Customer, User, GymManager
 from gyms.models import Gym
 
 
+class UserRoleStatusSerializer(serializers.Serializer):
+    is_authenticated = serializers.BooleanField()
+    name = serializers.CharField(allow_null=True)
+    is_customer = serializers.BooleanField()
+    is_gym_manager = serializers.BooleanField()
+    is_platform_manager = serializers.BooleanField()
+
+
 class CustomerRegisterSerializer(serializers.ModelSerializer):
     # فیلدهای یوزر
     phone = serializers.CharField(max_length=11, write_only=True)

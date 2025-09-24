@@ -11,12 +11,40 @@ from accounts.auth import CustomJWTAuthentication
 from accounts.models import Customer, GymManager
 from accounts.permissions import IsGymManager
 from accounts.serializers import CustomerRegisterSerializer, CustomerLoginSerializer, GymManagerSerializer, \
-    GymSerializer
+    GymSerializer, UserRoleStatusSerializer
 from gyms.models import Gym
 
 
 # Create your views here.
 # <=================== User Views ===================>
+
+class UserRoleStatusView(generics.GenericAPIView):
+    serializer_class = UserRoleStatusSerializer
+    permission_classes = [AllowAny]  # می‌تونی بذاری IsAuthenticated اگه فقط برای لاگین‌ها بخوای
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated:
+            data = {
+                "is_authenticated": True,
+                "name": user.full_name,
+                "is_customer": hasattr(user, "customer"),
+                "is_gym_manager": hasattr(user, "gym_manager"),
+                "is_platform_manager": hasattr(user, "platform_manager"),
+            }
+        else:
+            data = {
+                "is_authenticated": False,
+                "name": None,
+                "is_customer": False,
+                "is_gym_manager": False,
+                "is_platform_manager": False,
+            }
+
+        serializer = self.get_serializer(data)
+        return Response(serializer.data)
+
+
 class CustomerLogoutView(generics.GenericAPIView):
     """
     ویو لاگ اوت یک درخواست پست با بادی خالی

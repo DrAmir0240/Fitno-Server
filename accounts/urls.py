@@ -4,6 +4,7 @@ from accounts import views
 
 urlpatterns = [
     # <=================== User Views ===================>
+    path('status/', views.UserRoleStatusView.as_view(), name='status'),
     path('login/', views.CustomerLoginView.as_view(), name='login'),
     path('logout/', views.CustomerLogoutView.as_view(), name='logout'),
     path('refresh-token/', views.RefreshTokenView.as_view(), name='refresh-token'),
