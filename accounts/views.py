@@ -45,7 +45,7 @@ class UserRoleStatusView(generics.GenericAPIView):
         return Response(serializer.data)
 
 
-class CustomerLogoutView(generics.GenericAPIView):
+class LogoutView(generics.GenericAPIView):
     """
     ویو لاگ اوت یک درخواست پست با بادی خالی
     """
@@ -71,7 +71,7 @@ class CustomerLogoutView(generics.GenericAPIView):
             return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CustomerLoginView(generics.GenericAPIView):
+class LoginView(generics.GenericAPIView):
     serializer_class = CustomerLoginSerializer
     permission_classes = [AllowAny]
 
