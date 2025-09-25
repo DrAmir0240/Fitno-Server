@@ -31,7 +31,7 @@ class Gym(models.Model):
 
 class MemberShipType(models.Model):
     title = models.CharField(max_length=255)
-    gyms = models.ForeignKey(Gym, on_delete=models.CASCADE, related_name='subscription_types')
+    gyms = models.ForeignKey(Gym, on_delete=models.CASCADE, related_name='membership_types')
     days = models.IntegerField(default=0)
     price = models.IntegerField(default=0)
     description = models.TextField(blank=True, null=True)

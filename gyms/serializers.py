@@ -1,16 +1,23 @@
 from django.utils.timezone import now
 from rest_framework import serializers
 
-from gyms.models import Gym
+from gyms.models import Gym, MemberShip, MemberShipType
+
+
+class CustomerPanelMemberShipTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MemberShipType
+        fields = ['id', 'title', 'days', 'price']
 
 
 class CustomerPanelGymSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    membership_types = serializers.SerializerMethodField()
 
     class Meta:
         model = Gym
-        fields = '__all__'  # همه فیلدهای Gym
-        # و فیلد status هم اضافه میشه
+        fields = '__all__'
+        extra_fields = ['status', 'membership_types']
 
     def get_status(self, obj):
         request = self.context.get("request")
@@ -22,9 +29,40 @@ class CustomerPanelGymSerializer(serializers.ModelSerializer):
         if not membership:
             return "غیر فعال"
 
-        # شرط فعال بودن: session_left > 0 و تاریخ اعتبار تموم نشده
         if membership.session_left > 0 and (
-            membership.validity_date is None or membership.validity_date >= now().date()
+                membership.validity_date is None or membership.validity_date >= now().date()
         ):
             return "فعال"
         return "غیر فعال"
+
+    def get_membership_types(self, obj):
+        # همه MemberShipType هایی که به این Gym وصلن
+        types = MemberShipType.objects.filter(memberships__gym=obj).distinct()
+        return CustomerPanelMemberShipTypeSerializer(types, many=True).data
+
+
+class CustomerPanelMembershipSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    gym_title = serializers.CharField(source='gym.title', read_only=True)
+    membership_type = serializers.CharField(source='type.name', read_only=True)
+
+    class Meta:
+        model = MemberShip
+        fields = [
+            'id',
+            'gym_title',
+            'membership_type',
+            'start_date',
+            'validity_date',
+            'session_left',
+            'price',
+            'days',
+            'status'
+        ]
+
+    def get_status(self, obj):
+        from django.utils.timezone import now
+        today = now().date()
+        if obj.session_left > 0 and obj.validity_date and obj.validity_date >= today:
+            return "فعال"
+        return "غیرفعال"
