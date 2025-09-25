@@ -62,7 +62,7 @@ class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer')
     national_code = models.CharField(max_length=50, blank=True, null=True)
     city = models.CharField(max_length=255, blank=True, null=True)
-    gender = models.CharField(max_length=255, choices=(('male', 'مرد'), ('female', 'زن')), blank=True, null=True)
+    gender = models.CharField(max_length=255, choices=(('male', 'مرد'), ('female', 'زن')), default='male')
     balance = models.IntegerField(default=0)
 
     def __str__(self):
