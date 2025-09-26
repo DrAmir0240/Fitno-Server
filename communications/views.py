@@ -86,3 +86,19 @@ class CustomerPanelNotificationList(generics.ListAPIView):
         if not qs.exists():
             raise NotFound("هیچ نوتیفیکیشنی برای این کاربر یافت نشد.")
         return qs
+
+
+class CustomerPanelNotificationDetail(generics.RetrieveAPIView):
+    serializer_class = CustomerPanelNotificationSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+
+    def get_object(self):
+        obj = super().get_object()
+        if not obj.is_read:
+            obj.is_read = True
+            obj.save(update_fields=["is_read"])
+        return obj

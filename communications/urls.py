@@ -12,4 +12,6 @@ urlpatterns = [
          name='customer-tickets'),
     path('customer/notifications/', views.CustomerPanelNotificationList.as_view(),
          name='customer-notifications'),
+    path('customer/notifications/<int:pk>', views.CustomerPanelNotificationDetail.as_view(),
+         name='customer-notifications'),
 ]

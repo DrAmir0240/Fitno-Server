@@ -35,7 +35,6 @@ class CustomerPanelTicketSerializer(serializers.ModelSerializer):
         return ticket
 
 
-
 class CustomerPanelNotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
