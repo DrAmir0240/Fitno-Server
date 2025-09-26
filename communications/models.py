@@ -29,7 +29,8 @@ class Notification(models.Model):
 class Announcement(models.Model):
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='announcements')
     gym = models.ForeignKey(Gym, on_delete=models.SET_NULL, null=True, blank=True, related_name='announcements')
-    type = models.CharField(max_length=100, blank=True, null=True)
+    type = models.CharField(max_length=100, choices=(('gym', 'باشگاهی'), ('platform', 'پلتفرم'),),
+                            default='gym')
     message = models.TextField()
 
     def __str__(self):
