@@ -5,8 +5,9 @@ from django.utils.timezone import now
 from rest_framework.permissions import IsAuthenticated
 from accounts.auth import CustomJWTAuthentication
 from gyms.models import MemberShip
-from communications.models import Announcement
-from communications.serializers import AnnouncementSerializer
+from communications.models import Announcement, Ticket, Notification
+from communications.serializers import AnnouncementSerializer, CustomerPanelTicketSerializer, \
+    CustomerPanelNotificationSerializer
 
 
 # Create your views here.
@@ -54,4 +55,34 @@ class CustomerPanelAnnouncementPlatform(generics.ListAPIView):
         if not qs.exists():
             raise NotFound("هیچ اطلاعیه پلتفرمی یافت نشد.")
 
+        return qs
+
+
+class CustomerPanelTicketListCreate(generics.ListCreateAPIView):
+    serializer_class = CustomerPanelTicketSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Ticket.objects.filter(sender=user, replied_to__isnull=True).order_by("-send_time")
+        # فقط تیکت‌های اصلی کاربر (نه ریپلای‌هایی که خودش زده) رو میاره
+        if not qs.exists():
+            raise NotFound("هیچ تیکتی برای این کاربر یافت نشد.")
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
+
+class CustomerPanelNotificationList(generics.ListAPIView):
+    serializer_class = CustomerPanelNotificationSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Notification.objects.filter(user=user).order_by("-id")
+        if not qs.exists():
+            raise NotFound("هیچ نوتیفیکیشنی برای این کاربر یافت نشد.")
         return qs
