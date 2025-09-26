@@ -71,6 +71,8 @@ class InOut(models.Model):
     confirm_in = models.BooleanField(default=False)
     subscription = models.ForeignKey(MemberShip, on_delete=models.SET_NULL, null=True, blank=True,
                                      related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def __str__(self):
         return f"InOut {self.customer} @ {self.gym}"

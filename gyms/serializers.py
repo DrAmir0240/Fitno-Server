@@ -1,7 +1,7 @@
 from django.utils.timezone import now
 from rest_framework import serializers
 
-from gyms.models import Gym, MemberShip, MemberShipType
+from gyms.models import Gym, MemberShip, MemberShipType, InOut
 
 
 class CustomerPanelMemberShipTypeSerializer(serializers.ModelSerializer):
@@ -66,3 +66,10 @@ class CustomerPanelMembershipSerializer(serializers.ModelSerializer):
         if obj.session_left > 0 and obj.validity_date and obj.validity_date >= today:
             return "فعال"
         return "غیرفعال"
+
+
+class CustomerPanelInOutRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InOut
+        fields = ["id", "gym", "closet", "enter_time", "out_time", "confirm_in", "subscription"]
+        read_only_fields = ["id", "enter_time", "out_time", "confirm_in", "subscription"]
