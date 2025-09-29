@@ -71,9 +71,6 @@ class CustomerPanelTicketListCreate(generics.ListCreateAPIView):
             raise NotFound("هیچ تیکتی برای این کاربر یافت نشد.")
         return qs
 
-    def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
-
 
 class CustomerPanelNotificationList(generics.ListAPIView):
     serializer_class = CustomerPanelNotificationSerializer
