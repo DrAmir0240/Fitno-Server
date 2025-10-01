@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from accounts.auth import CustomJWTAuthentication
 from gyms.models import Gym, MemberShip, InOut
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
-    CustomerPanelInOutRequestSerializer, CustomerPanelSignedGymSerializer
+    CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer
 
 
 # Create your views here.
@@ -28,8 +28,15 @@ class CustomerPanelGymList(generics.ListAPIView):
         )
 
 
+class CustomerPanelGymDetail(generics.RetrieveAPIView):
+    queryset = Gym.objects.filter(is_active=True)
+    serializer_class = CustomerPanelGymSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+
 class CustomerPanelCurrentGymList(generics.ListAPIView):
-    serializer_class = CustomerPanelSignedGymSerializer
+    serializer_class = CustomerPanelGymSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
 
@@ -37,7 +44,7 @@ class CustomerPanelCurrentGymList(generics.ListAPIView):
         customer = getattr(self.request.user, "customer", None)
         if not customer:
             return Gym.objects.none()
-        return Gym.objects.filter(memberships__customer=customer).distinct()
+        return Gym.objects.filter(memberships__customer=customer, is_active=True).distinct()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -54,7 +61,7 @@ class CustomerPanelCurrentGymList(generics.ListAPIView):
 
 
 class CustomerPanelCurrentGymDetail(generics.RetrieveAPIView):
-    serializer_class = CustomerPanelSignedGymSerializer
+    serializer_class = CustomerPanelGymSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
 
@@ -62,7 +69,7 @@ class CustomerPanelCurrentGymDetail(generics.RetrieveAPIView):
         customer = getattr(self.request.user, "customer", None)
         if not customer:
             return Gym.objects.none()
-        return Gym.objects.filter(memberships__customer=customer).distinct()
+        return Gym.objects.filter(memberships__customer=customer, is_active=True).distinct()
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

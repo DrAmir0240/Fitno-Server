@@ -23,6 +23,7 @@ class Gym(models.Model):
     description = models.TextField()
     work_hours_per_day = models.CharField(max_length=500)
     work_days_per_week = models.CharField(max_length=500)
+    is_active = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -65,6 +66,7 @@ class MemberShip(models.Model):
     transaction = models.OneToOneField(Transaction, on_delete=models.SET_NULL, null=True, blank=True,
                                        related_name='membership')
     days = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Membership {self.customer.user.full_name} - {self.gym.title}"

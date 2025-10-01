@@ -9,37 +9,6 @@ class CustomerPanelMemberShipTypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'days', 'price']
 
 
-class CustomerPanelGymSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField()
-    membership_types = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Gym
-        fields = '__all__'
-        extra_fields = ['status', 'membership_types']
-
-    def get_status(self, obj):
-        request = self.context.get("request")
-        customer = getattr(request.user, "customer", None)
-        if not customer:
-            return "غیر فعال"
-
-        membership = obj.memberships.filter(customer=customer).first()
-        if not membership:
-            return "غیر فعال"
-
-        if membership.session_left > 0 and (
-                membership.validity_date is None or membership.validity_date >= now().date()
-        ):
-            return "فعال"
-        return "غیر فعال"
-
-    def get_membership_types(self, obj):
-        # همه MemberShipType هایی که به این Gym وصلن
-        types = MemberShipType.objects.filter(memberships__gym=obj).distinct()
-        return CustomerPanelMemberShipTypeSerializer(types, many=True).data
-
-
 class CustomerPanelMembershipSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     gym_title = serializers.CharField(source='gym.title', read_only=True)
@@ -104,7 +73,7 @@ class CustomerPanelMemberShipSerializer(serializers.ModelSerializer):
         ]
 
 
-class CustomerPanelSignedGymSerializer(serializers.ModelSerializer):
+class CustomerPanelGymSerializer(serializers.ModelSerializer):
     images = CustomerPanelGymImageSerializer(source='gymimage_set', many=True, read_only=True)
     banners = CustomerPanelGymBannerSerializer(source='gymbanner_set', many=True, read_only=True)
     membership_types = CustomerPanelMemberShipTypeForSignedGymSerializer(many=True, read_only=True)
