@@ -1,5 +1,4 @@
 from django.db import models
-
 from accounts.models import Customer, GymManager
 from payments.models import Transaction
 
@@ -27,6 +26,24 @@ class Gym(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class GymImage(models.Model):
+    gym = models.ForeignKey(Gym, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='gym_img/gym_img')
+
+    def __str__(self):
+        return self.gym.title + ':' + str(self.id)
+
+
+class GymBanner(models.Model):
+    gym = models.ForeignKey(Gym, on_delete=models.CASCADE)
+    banner = models.ImageField(upload_to='gym_img/banner_img')
+    is_main = models.BooleanField(default=False)
+    title = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.title + " for:" + self.gym.title
 
 
 class MemberShipType(models.Model):

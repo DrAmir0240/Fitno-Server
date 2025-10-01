@@ -1,7 +1,6 @@
 from django.utils.timezone import now
 from rest_framework import serializers
-
-from gyms.models import Gym, MemberShip, MemberShipType, InOut
+from gyms.models import Gym, MemberShip, MemberShipType, InOut, GymImage, GymBanner
 
 
 class CustomerPanelMemberShipTypeSerializer(serializers.ModelSerializer):
@@ -73,3 +72,60 @@ class CustomerPanelInOutRequestSerializer(serializers.ModelSerializer):
         model = InOut
         fields = ["id", "gym", "closet", "enter_time", "out_time", "confirm_in", "subscription"]
         read_only_fields = ["id", "enter_time", "out_time", "confirm_in", "subscription"]
+
+
+class CustomerPanelGymImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GymImage
+        fields = ['id', 'image']
+
+
+class CustomerPanelGymBannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GymBanner
+        fields = ['id', 'banner', 'title', 'is_main']
+
+
+class CustomerPanelMemberShipTypeForSignedGymSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MemberShipType
+        fields = ['id', 'title', 'days', 'price', 'description']
+
+
+class CustomerPanelMemberShipSerializer(serializers.ModelSerializer):
+    gym_title = serializers.CharField(source='gym.title', read_only=True)
+    type_title = serializers.CharField(source='type.title', read_only=True)
+
+    class Meta:
+        model = MemberShip
+        fields = [
+            'id', 'gym_title', 'type_title', 'start_date',
+            'validity_date', 'session_left', 'price', 'days'
+        ]
+
+
+class CustomerPanelSignedGymSerializer(serializers.ModelSerializer):
+    images = CustomerPanelGymImageSerializer(source='gymimage_set', many=True, read_only=True)
+    banners = CustomerPanelGymBannerSerializer(source='gymbanner_set', many=True, read_only=True)
+    membership_types = CustomerPanelMemberShipTypeForSignedGymSerializer(many=True, read_only=True)
+    my_memberships = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Gym
+        fields = [
+            'id', 'title', 'location', 'address', 'main_img',
+            'phone', 'headline_phone', 'gender', 'commission_type',
+            'facilities', 'description', 'work_hours_per_day', 'work_days_per_week',
+            'images', 'banners', 'membership_types', 'my_memberships'
+        ]
+
+    def get_my_memberships(self, obj):
+        """فقط ممبرشیپ‌هایی که مربوط به کاربر درخواست‌دهنده هستن"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return []
+        customer = getattr(request.user, 'customer', None)
+        if not customer:
+            return []
+        memberships = obj.memberships.filter(customer=customer)
+        return CustomerPanelMemberShipSerializer(memberships, many=True).data

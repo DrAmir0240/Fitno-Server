@@ -23,6 +23,8 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
     # فیلدهای مشتری
     national_code = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
     city = serializers.CharField(max_length=255, write_only=True)
+    profile_photo = serializers.ImageField(required=False, allow_null=True)
+    gender = serializers.ChoiceField(choices=(('male', 'مرد'), ('female', 'زن')), default='male')
 
     # توکن‌ها
     access = serializers.CharField(read_only=True)
@@ -32,7 +34,7 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'phone', 'full_name', 'email', 'password',
-            'national_code', 'city',
+            'national_code', 'city', 'profile_photo', 'gender',
             'access', 'refresh'
         ]
 
@@ -43,6 +45,8 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         national_code = validated_data.pop('national_code', None)
         city = validated_data.pop('city')
+        profile_photo = validated_data.pop('profile_photo', None)
+        gender = validated_data.pop('gender', 'male')
 
         # ساخت یوزر
         user = User.objects.create(
@@ -57,14 +61,13 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
         customer = Customer.objects.create(
             user=user,
             national_code=national_code,
-            city=city
+            city=city,
+            profile_photo=profile_photo,
+            gender=gender
         )
         return customer
 
     def to_representation(self, instance):
-        """
-        خروجی نهایی شامل همه‌ی داده‌های Customer + User + توکن‌ها
-        """
         data = super().to_representation(instance)
 
         # اطلاعات یوزر
@@ -76,6 +79,8 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
         # اطلاعات مشتری
         data['national_code'] = instance.national_code
         data['city'] = instance.city
+        data['gender'] = instance.gender
+        data['profile_photo'] = instance.profile_photo.url if instance.profile_photo else None
 
         # توکن‌ها
         refresh = RefreshToken.for_user(instance.user)
@@ -83,6 +88,38 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
         data['access'] = str(refresh.access_token)
 
         return data
+
+
+class CustomerProfileSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(source="user.phone", read_only=True)  # غیرقابل تغییر
+    email = serializers.EmailField(source="user.email", read_only=True)  # غیرقابل تغییر
+    full_name = serializers.CharField(source="user.full_name", required=False)
+
+    class Meta:
+        model = Customer
+        fields = [
+            'id', 'phone', 'email', 'full_name',
+            'national_code', 'city', 'gender', 'profile_photo'
+        ]
+
+    def update(self, instance, validated_data):
+        # آپدیت Customer
+        instance.national_code = validated_data.get("national_code", instance.national_code)
+        instance.city = validated_data.get("city", instance.city)
+        instance.gender = validated_data.get("gender", instance.gender)
+
+        if "profile_photo" in validated_data:
+            instance.profile_photo = validated_data.get("profile_photo", instance.profile_photo)
+
+        instance.save()
+
+        # آپدیت full_name در User (اجازه داریم تغییر بدیم)
+        user_data = validated_data.get("user", {})
+        if "full_name" in user_data:
+            instance.user.full_name = user_data["full_name"]
+            instance.user.save()
+
+        return instance
 
 
 class CustomerLoginSerializer(serializers.Serializer):

@@ -12,6 +12,8 @@ urlpatterns = [
 
     # <=================== Customer Views ===================>
     path('customer/register/', views.CustomerRegisterView.as_view(), name='customer-register'),
+    path('customer/profile/', views.CustomerProfileView.as_view(), name='customer-profile'),
+
     # <=================== GymManager Views ===================>
     path('gym-manager/upgrade/', views.GymManagerCreateView.as_view(), name='gym-manager-upgrade'),
     path('gym-manager/add-gym/', views.GymCreateView.as_view(), name='add-gym'),

@@ -60,6 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer')
+    profile_photo = models.ImageField(upload_to='customers/profile-photos/', null=True, blank=True)
     national_code = models.CharField(max_length=50, blank=True, null=True)
     city = models.CharField(max_length=255, blank=True, null=True)
     gender = models.CharField(max_length=255, choices=(('male', 'مرد'), ('female', 'زن')), default='male')

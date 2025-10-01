@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import generics, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,7 +12,7 @@ from accounts.auth import CustomJWTAuthentication
 from accounts.models import Customer, GymManager
 from accounts.permissions import IsGymManager
 from accounts.serializers import CustomerRegisterSerializer, CustomerLoginSerializer, GymManagerSerializer, \
-    GymSerializer, UserRoleStatusSerializer
+    GymSerializer, UserRoleStatusSerializer, CustomerProfileSerializer
 from gyms.models import Gym
 
 
@@ -155,12 +156,19 @@ class RefreshTokenView(generics.GenericAPIView):
 
 
 # <=================== Customer Views ===================>
+
+# 🔹 ثبت‌نام
 class CustomerRegisterView(generics.CreateAPIView):
     queryset = Customer.objects.all()
     serializer_class = CustomerRegisterSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return Response(
+                {"detail": "شما قبلاً ثبت‌نام کرده‌اید و وارد شده‌اید."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         customer = serializer.save()
@@ -176,7 +184,7 @@ class CustomerRegisterView(generics.CreateAPIView):
 
         response = Response(response_data, status=status.HTTP_201_CREATED)
 
-        # تنظیم کوکی‌ها
+        # ست کردن کوکی‌ها
         response.set_cookie(
             key=settings.SIMPLE_JWT['AUTH_COOKIE'],
             value=access_token,
@@ -196,6 +204,16 @@ class CustomerRegisterView(generics.CreateAPIView):
         )
 
         return response
+
+
+# 🔹 پروفایل (GET + PATCH)
+class CustomerProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = CustomerProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        if hasattr(self.request.user, 'customer'):
+            return self.request.user.customer
 
 
 # <=================== GymManager Views ===================>

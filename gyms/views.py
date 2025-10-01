@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from accounts.auth import CustomJWTAuthentication
 from gyms.models import Gym, MemberShip, InOut
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
-    CustomerPanelInOutRequestSerializer
+    CustomerPanelInOutRequestSerializer, CustomerPanelSignedGymSerializer
 
 
 # Create your views here.
@@ -28,8 +28,8 @@ class CustomerPanelGymList(generics.ListAPIView):
         )
 
 
-class CustomerPanelCurrentGymDetail(generics.ListAPIView):
-    serializer_class = CustomerPanelGymSerializer
+class CustomerPanelCurrentGymList(generics.ListAPIView):
+    serializer_class = CustomerPanelSignedGymSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
 
@@ -45,6 +45,29 @@ class CustomerPanelCurrentGymDetail(generics.ListAPIView):
             raise NotFound(detail="هیچ باشگاهی ثبت نام نشده است")
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def get_serializer_context(self):
+        """برای دسترسی به request تو serializer"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class CustomerPanelCurrentGymDetail(generics.RetrieveAPIView):
+    serializer_class = CustomerPanelSignedGymSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        customer = getattr(self.request.user, "customer", None)
+        if not customer:
+            return Gym.objects.none()
+        return Gym.objects.filter(memberships__customer=customer).distinct()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class CustomerPanelRequestGymEntry(generics.CreateAPIView):
@@ -98,21 +121,22 @@ class CustomerMembershipListView(generics.ListAPIView):
     authentication_classes = [CustomJWTAuthentication]
 
     def get_queryset(self):
-        customer = self.request.user.customer
-        today = now().date()
+        if hasattr(self.request.user, "customer"):
+            customer = self.request.user.customer
+            today = now().date()
 
-        queryset = MemberShip.objects.filter(customer=customer)
+            queryset = MemberShip.objects.filter(customer=customer)
 
-        # Annotate با status عددی برای مرتب‌سازی
-        queryset = queryset.annotate(
-            is_active=Case(
-                When(session_left__gt=0, validity_date__gte=today, then=Value(1)),
-                default=Value(0),
-                output_field=IntegerField()
-            )
-        ).order_by('-is_active', 'validity_date')  # اول فعال‌ها، بعد غیر فعال‌ها؛ داخلش مرتب بر اساس تاریخ
+            # Annotate با status عددی برای مرتب‌سازی
+            queryset = queryset.annotate(
+                is_active=Case(
+                    When(session_left__gt=0, validity_date__gte=today, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )
+            ).order_by('-is_active', 'validity_date')
 
-        return queryset
+            return queryset
 
 
 class CustomerMembershipSignUp(generics.CreateAPIView):
