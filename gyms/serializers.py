@@ -88,7 +88,7 @@ class CustomerPanelMemberShipCreateSerializer(serializers.ModelSerializer):
             'days',
             'is_active',
         ]
-        read_only_fields = ['start_date', 'validity_date', 'price', 'days', 'is_active']
+        read_only_fields = ['start_date', 'validity_date', 'session_left', 'price', 'days', 'is_active']
 
     def create(self, validated_data):
         request = self.context['request']
