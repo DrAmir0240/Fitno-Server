@@ -1,5 +1,4 @@
 from django.urls import path
-
 from gyms import views
 
 urlpatterns = [
@@ -10,7 +9,9 @@ urlpatterns = [
     path('customer/gyms/signed/<int:pk>/', views.CustomerPanelCurrentGymDetail.as_view(), name='customer-gym-signed'),
     path('customer/gyms/enter-request/', views.CustomerPanelRequestGymEntry.as_view(),
          name='customer-gym-enter-request'),
-    path('customer/memberships/', views.CustomerMembershipListView.as_view(), name='customer-membership-list'),
+    path('customer/memberships/', views.CustomerPanelMembershipListView.as_view(), name='customer-membership-list'),
+    path('customer/memberships/<int:pk>/', views.CustomerPanelMembershipDetailView.as_view(),
+         name='customer-membership-detail'),
     path('customer/memberships/sign-up/', views.CustomerMembershipSignUp.as_view(),
          name='customer-membership-sign-up'),
 ]

@@ -4,11 +4,10 @@ from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from accounts.auth import CustomJWTAuthentication
-from gyms.models import Gym, MemberShip, InOut
+from gyms.models import Gym, MemberShip, InOut, MemberShipType
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
-    CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer
+    CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer
 
 
 # Create your views here.
@@ -122,7 +121,7 @@ class CustomerPanelRequestGymEntry(generics.CreateAPIView):
         serializer.save(customer=customer, gym=gym, subscription=membership)
 
 
-class CustomerMembershipListView(generics.ListAPIView):
+class CustomerPanelMembershipListView(generics.ListAPIView):
     serializer_class = CustomerPanelMembershipSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
@@ -146,10 +145,33 @@ class CustomerMembershipListView(generics.ListAPIView):
             return queryset
 
 
+class CustomerPanelMembershipDetailView(generics.RetrieveAPIView):
+    serializer_class = CustomerPanelMembershipSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        if hasattr(self.request.user, "customer"):
+            customer = self.request.user.customer
+            today = now().date()
+
+            queryset = MemberShip.objects.filter(customer=customer)
+
+            # Annotate با status عددی برای مرتب‌سازی
+            queryset = queryset.annotate(
+                is_active=Case(
+                    When(session_left__gt=0, validity_date__gte=today, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )
+            ).order_by('-is_active', 'validity_date')
+
+            return queryset
+
+
 class CustomerMembershipSignUp(generics.CreateAPIView):
-    """
-    این یو ار ال برای ثبت نام در باشگاه و خرید سانس است
-    بعد از اتصال درگاه پرداخت تکمیل میشود
-     در حال حاضر صرفا برای سهولت توسعه گذاشته شده است
-     """
-    pass
+    queryset = MemberShip.objects.all()
+    serializer_class = CustomerPanelMemberShipCreateSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]

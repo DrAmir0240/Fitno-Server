@@ -73,6 +73,52 @@ class CustomerPanelMemberShipSerializer(serializers.ModelSerializer):
         ]
 
 
+class CustomerPanelMemberShipCreateSerializer(serializers.ModelSerializer):
+    membership_type_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = MemberShip
+        fields = [
+            'id',
+            'membership_type_id',
+            'start_date',
+            'validity_date',
+            'session_left',
+            'price',
+            'days',
+            'is_active',
+        ]
+        read_only_fields = ['start_date', 'validity_date', 'price', 'days', 'is_active']
+
+    def create(self, validated_data):
+        request = self.context['request']
+        customer = request.user.customer  # فرض بر اینه که هر یوزر یک customer داره
+        membership_type_id = validated_data.pop('membership_type_id')
+
+        try:
+            membership_type = MemberShipType.objects.get(id=membership_type_id)
+        except MemberShipType.DoesNotExist:
+            raise serializers.ValidationError({"membership_type_id": "Membership type not found."})
+
+        from datetime import date, timedelta
+        start_date = date.today()
+        validity_date = start_date + timedelta(days=membership_type.days)
+
+        membership = MemberShip.objects.create(
+            customer=customer,
+            gym=membership_type.gyms,
+            type=membership_type,
+            start_date=start_date,
+            validity_date=validity_date,
+            session_left=membership_type.days,
+            price=membership_type.price,
+            days=membership_type.days,
+            transaction=None,
+            is_active=False
+        )
+        return membership
+
+
 class CustomerPanelGymSerializer(serializers.ModelSerializer):
     images = CustomerPanelGymImageSerializer(source='gymimage_set', many=True, read_only=True)
     banners = CustomerPanelGymBannerSerializer(source='gymbanner_set', many=True, read_only=True)
