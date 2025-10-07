@@ -2,16 +2,24 @@ from django.db.models import Q, Case, When, Value, IntegerField
 from django.utils.timezone import now
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from accounts.auth import CustomJWTAuthentication
 from gyms.models import Gym, MemberShip, InOut, MemberShipType
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
     CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
-    GymPanelGymSerializer
+    GymPanelGymSerializer, GymChoicesSerializer
 
 
 # Create your views here.
+class GymChoices(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        serializer = GymChoicesSerializer(instance={}, context={'request': request})
+        return Response(serializer.data)
+
+
 # <=================== Customer Views ===================>
 class CustomerPanelGymList(generics.ListAPIView):
     serializer_class = CustomerPanelGymSerializer
@@ -179,21 +187,31 @@ class CustomerMembershipSignUp(generics.CreateAPIView):
 
 
 # <=================== Gym Views ===================>
-class GymPanelGymEdit(generics.RetrieveUpdateAPIView):
+class GymPanelGym(generics.ListCreateAPIView):
+    serializer_class = GymPanelGymSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        return Gym.objects.filter(manager__user=self.request.user)
+
+
+class GymPanelGymDetail(generics.RetrieveUpdateAPIView):
     """
-    {
-  "title": "باشگاه فیتنو جدید",
-  "description": "به‌روز شده توسط مدیر",
-  "images": [
-    {"id": 2, "image": "data:image/png;base64,..."},  // ویرایش تصویر
-    {"image": "data:image/png;base64,..."}             // اضافه کردن تصویر جدید
-  ]
+{
+    "title": "باشگاه فیتنو جدید",
+    "description": "به‌روز شده توسط مدیر",
+    "images": [
+        {"id": 2, "image": "data:image/png;base64,..."},  // ویرایش تصویر
+        {"image": "data:image/png;base64,..."}             // اضافه کردن تصویر جدید
+    ]
 }
 اگر ID تصویری رو نفرستی و فقط image بدی → تصویر جدید ساخته میشه.
 اگر ID تصویر رو نفرستی ولی اون تصویر دیگه در لیست نباشه → حذف میشه.
     """
     serializer_class = GymPanelGymSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
 
     def get_queryset(self):
         return Gym.objects.filter(manager__user=self.request.user)

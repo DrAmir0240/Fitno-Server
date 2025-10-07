@@ -2,6 +2,8 @@ from django.urls import path
 from gyms import views
 
 urlpatterns = [
+    path('choices/', views.GymChoices.as_view(), name='gym-choices'),
+
     # <=================== Customer Views ===================>
     path('customer/gyms/', views.CustomerPanelGymList.as_view(), name='customer-gym-list'),
     path('customer/gyms/<int:pk>/', views.CustomerPanelGymDetail.as_view(), name='customer-gym-detail'),
@@ -14,7 +16,8 @@ urlpatterns = [
          name='customer-membership-detail'),
     path('customer/memberships/sign-up/', views.CustomerMembershipSignUp.as_view(),
          name='customer-membership-sign-up'),
-    # <=================== Gym Views ===================>
-    path('gym-panel/gyms/<int:pk>/', views.GymPanelGymEdit.as_view(), name='gym-panel-gym-detail'),
 
+    # <=================== Gym Views ===================>
+    path('gym-panel/gyms/', views.GymPanelGym.as_view(), name='gym-panel-gym'),
+    path('gym-panel/gyms/<int:pk>/', views.GymPanelGymDetail.as_view(), name='gym-panel-gym-detail'),
 ]

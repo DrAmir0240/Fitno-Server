@@ -3,6 +3,34 @@ from rest_framework import serializers
 from gyms.models import Gym, MemberShip, MemberShipType, InOut, GymImage, GymBanner
 
 
+class GymChoicesSerializer(serializers.Serializer):
+    gyms = serializers.SerializerMethodField()
+    gender_choices = serializers.SerializerMethodField()
+    commission_type_choices = serializers.SerializerMethodField()
+
+    def get_gyms(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return []
+        gyms = Gym.objects.filter(manager__user=request.user)
+        return [
+            {"id": gym.id, "title": gym.title}
+            for gym in gyms
+        ]
+
+    def get_gender_choices(self, obj):
+        return [
+            {"key": key, "value": value}
+            for key, value in Gym._meta.get_field('gender').choices
+        ]
+
+    def get_commission_type_choices(self, obj):
+        return [
+            {"key": key, "value": value}
+            for key, value in Gym._meta.get_field('commission_type').choices
+        ]
+
+
 # <=================== Customer Views ===================>
 class CustomerPanelMemberShipTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -167,6 +195,31 @@ class GymPanelGymSerializer(serializers.ModelSerializer):
             'description', 'work_hours_per_day', 'work_days_per_week',
             'is_active', 'images'
         ]
+        read_only_fields = ['is_active']
+
+    def create(self, validated_data):
+        """
+        هنگام ساخت Gym جدید:
+        - manager از یوزر درخواست استخراج میشه.
+        - is_active همیشه False ست میشه.
+        - در صورت وجود تصاویر، آن‌ها نیز ساخته می‌شن.
+        """
+        request = self.context.get('request')
+        manager = getattr(request.user, 'gym_manager', None)
+
+        if manager is None:
+            raise serializers.ValidationError("مدیر معتبر یافت نشد.")
+
+        images_data = validated_data.pop('gymimage_set', [])
+
+        # ایجاد Gym جدید
+        gym = Gym.objects.create(manager=manager, is_active=False, **validated_data)
+
+        # افزودن تصاویر در صورت وجود
+        for img_data in images_data:
+            GymImage.objects.create(gym=gym, **img_data)
+
+        return gym
 
     def update(self, instance, validated_data):
         images_data = validated_data.pop('gymimage_set', [])
