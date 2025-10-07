@@ -20,4 +20,12 @@ urlpatterns = [
     # <=================== Gym Views ===================>
     path('gym-panel/gyms/', views.GymPanelGym.as_view(), name='gym-panel-gym'),
     path('gym-panel/gyms/<int:pk>/', views.GymPanelGymDetail.as_view(), name='gym-panel-gym-detail'),
+    path('gym-panel/membership-types/', views.GymPanelMemberShipType.as_view(),
+         name='membershiptype'),
+    path('gym-panel/membership-types/<int:pk>/', views.GymPanelMemberShipTypeDetail.as_view(),
+         name='membershiptype-detail'),
+    path('gym-panel/banner/', views.GymPanelGymBanner.as_view(),
+         name='banner'),
+    path('gym-panel/banner/<int:pk>/', views.GymPanelGymBannerDetail.as_view(),
+         name='banner-detail'),
 ]

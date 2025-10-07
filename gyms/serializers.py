@@ -248,3 +248,46 @@ class GymPanelGymSerializer(serializers.ModelSerializer):
             remaining_img.delete()
 
         return instance
+
+
+class GymPanelMemberShipTypeSerializer(serializers.ModelSerializer):
+    gym_title = serializers.CharField(source='gyms.title', read_only=True)
+
+    class Meta:
+        model = MemberShipType
+        fields = ['id', 'title', 'gym_title', 'gyms', 'days', 'price', 'description']
+
+    def validate_gyms(self, value):
+        """
+        بررسی کنه gym انتخاب‌شده واقعاً متعلق به مدیر لاگین‌شده هست
+        """
+        request = self.context.get('request')
+        user = request.user
+        if not hasattr(user, 'gym_manager'):
+            raise serializers.ValidationError("مدیر معتبر یافت نشد.")
+        if value.manager != user.gym_manager:
+            raise serializers.ValidationError("شما اجازه افزودن عضویت برای این باشگاه را ندارید.")
+        return value
+
+
+class GymPanelGymBannerSerializer(serializers.ModelSerializer):
+    gym_title = serializers.CharField(source='gym.title', read_only=True)
+
+    class Meta:
+        model = GymBanner
+        fields = ['id', 'title', 'banner', 'is_main', 'gym', 'gym_title']
+        read_only_fields = ['is_main']
+
+    def validate_gym(self, value):
+        """
+        فقط اجازه بده برای باشگاه‌های متعلق به یوزر فعلی بنر ساخته بشه
+        """
+        request = self.context.get('request')
+        user = request.user
+
+        if not hasattr(user, 'gym_manager'):
+            raise serializers.ValidationError("مدیر معتبر یافت نشد.")
+        if value.manager != user.gym_manager:
+            raise serializers.ValidationError("شما اجازه افزودن بنر برای این باشگاه را ندارید.")
+
+        return value

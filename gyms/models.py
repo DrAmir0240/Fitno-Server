@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q
+
 from accounts.models import Customer, GymManager
 from payments.models import Transaction
 
@@ -43,6 +45,15 @@ class GymBanner(models.Model):
     is_main = models.BooleanField(default=False)
     title = models.CharField(max_length=255)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['gym'],
+                condition=Q(is_main=True),
+                name='unique_main_banner_per_gym'
+            )
+        ]
+
     def __str__(self):
         return self.title + " for:" + self.gym.title
 
@@ -51,8 +62,12 @@ class MemberShipType(models.Model):
     title = models.CharField(max_length=255)
     gyms = models.ForeignKey(Gym, on_delete=models.CASCADE, related_name='membership_types')
     days = models.IntegerField(default=0)
+    type = models.CharField(max_length=255, choices=(('daily', 'روزانه'), ('monthly', 'ماهانه')), default='monthly')
     price = models.IntegerField(default=0)
     description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.title + " for: " + self.gyms.title
 
 
 class MemberShip(models.Model):
@@ -75,7 +90,8 @@ class MemberShip(models.Model):
 class Closet(models.Model):
     gym = models.ForeignKey(Gym, on_delete=models.CASCADE, related_name='closets')
     number = models.CharField(max_length=100)
-    status = models.CharField(max_length=50, default='available')
+    status = models.CharField(max_length=50, choices=(("available", "در دسترس"), ("unavailable", "غیرقابل دسترس")),
+                              default='available')
 
     def __str__(self):
         return f"{self.gym.title} - {self.number}"

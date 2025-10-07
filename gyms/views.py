@@ -5,10 +5,11 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from accounts.auth import CustomJWTAuthentication
-from gyms.models import Gym, MemberShip, InOut, MemberShipType
+from accounts.permissions import IsGymManager
+from gyms.models import Gym, MemberShip, InOut, MemberShipType, GymBanner
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
     CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
-    GymPanelGymSerializer, GymChoicesSerializer
+    GymPanelGymSerializer, GymChoicesSerializer, GymPanelMemberShipTypeSerializer, GymPanelGymBannerSerializer
 
 
 # Create your views here.
@@ -189,7 +190,7 @@ class CustomerMembershipSignUp(generics.CreateAPIView):
 # <=================== Gym Views ===================>
 class GymPanelGym(generics.ListCreateAPIView):
     serializer_class = GymPanelGymSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsGymManager]
     authentication_classes = [CustomJWTAuthentication]
 
     def get_queryset(self):
@@ -210,7 +211,7 @@ class GymPanelGymDetail(generics.RetrieveUpdateAPIView):
 اگر ID تصویر رو نفرستی ولی اون تصویر دیگه در لیست نباشه → حذف میشه.
     """
     serializer_class = GymPanelGymSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsGymManager]
     authentication_classes = [CustomJWTAuthentication]
 
     def get_queryset(self):
@@ -219,3 +220,51 @@ class GymPanelGymDetail(generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         gym = serializer.save()
         return gym
+
+
+class GymPanelMemberShipType(generics.ListCreateAPIView):
+    serializer_class = GymPanelMemberShipTypeSerializer
+    permission_classes = [IsAuthenticated, IsGymManager]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        """
+        فقط عضویت‌هایی که مربوط به باشگاه‌های متعلق به مدیر فعلی هستند
+        """
+        return MemberShipType.objects.filter(gyms__manager__user=self.request.user)
+
+
+class GymPanelMemberShipTypeDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = GymPanelMemberShipTypeSerializer
+    permission_classes = [IsAuthenticated, IsGymManager]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        """
+        فقط عضویت‌هایی که متعلق به باشگاه‌های خود کاربر هستند
+        """
+        return MemberShipType.objects.filter(gyms__manager__user=self.request.user)
+
+
+class GymPanelGymBanner(generics.ListCreateAPIView):
+    serializer_class = GymPanelGymBannerSerializer
+    permission_classes = [IsAuthenticated, IsGymManager]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        """
+        فقط بنرهای مربوط به باشگاه‌های متعلق به مدیر فعلی
+        """
+        return GymBanner.objects.filter(gym__manager__user=self.request.user)
+
+
+class GymPanelGymBannerDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = GymPanelGymBannerSerializer
+    permission_classes = [IsAuthenticated, IsGymManager]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        """
+        فقط بنرهای متعلق به باشگاه‌های مدیر فعلی
+        """
+        return GymBanner.objects.filter(gym__manager__user=self.request.user)
