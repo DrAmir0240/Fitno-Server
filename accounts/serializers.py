@@ -144,8 +144,8 @@ class CustomerLoginSerializer(serializers.Serializer):
 class GymManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = GymManager
-        fields = ['id', 'national_code', 'verification_code', 'balance', 'city', 'invitation_code']
-        read_only_fields = ['id', 'balance']
+        fields = ['id', 'national_code', 'verification_code','city', 'invitation_code']
+        read_only_fields = ['id',]
 
     def create(self, validated_data):
         # یوزر از کانتکست گرفته میشه

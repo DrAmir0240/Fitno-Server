@@ -158,7 +158,7 @@ class CustomerPanelGymSerializer(serializers.ModelSerializer):
         model = Gym
         fields = [
             'id', 'title', 'location', 'address', 'main_img',
-            'phone', 'headline_phone', 'gender', 'commission_type',
+            'phone', 'headline_phone', 'gender',
             'facilities', 'description', 'work_hours_per_day', 'work_days_per_week',
             'images', 'banners', 'membership_types', 'my_memberships'
         ]
