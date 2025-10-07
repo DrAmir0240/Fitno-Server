@@ -9,7 +9,8 @@ from accounts.permissions import IsGymManager
 from gyms.models import Gym, MemberShip, InOut, MemberShipType, GymBanner
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
     CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
-    GymPanelGymSerializer, GymChoicesSerializer, GymPanelMemberShipTypeSerializer, GymPanelGymBannerSerializer
+    GymPanelGymSerializer, GymChoicesSerializer, GymPanelMemberShipTypeSerializer, GymPanelGymBannerSerializer, \
+    CustomerPanelSignedGymListSerializer
 
 
 # Create your views here.
@@ -44,8 +45,8 @@ class CustomerPanelGymDetail(generics.RetrieveAPIView):
     authentication_classes = [CustomJWTAuthentication]
 
 
-class CustomerPanelCurrentGymList(generics.ListAPIView):
-    serializer_class = CustomerPanelGymSerializer
+class CustomerPanelSingedGymList(generics.ListAPIView):
+    serializer_class = CustomerPanelSignedGymListSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
 
@@ -62,14 +63,8 @@ class CustomerPanelCurrentGymList(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get_serializer_context(self):
-        """برای دسترسی به request تو serializer"""
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
 
-
-class CustomerPanelCurrentGymDetail(generics.RetrieveAPIView):
+class CustomerPanelSignedGymDetail(generics.RetrieveAPIView):
     serializer_class = CustomerPanelGymSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'

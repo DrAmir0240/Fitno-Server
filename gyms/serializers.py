@@ -148,6 +148,12 @@ class CustomerPanelMemberShipCreateSerializer(serializers.ModelSerializer):
         return membership
 
 
+class CustomerPanelSignedGymListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Gym
+        fields = ['id', 'title', 'main_img']
+
+
 class CustomerPanelGymSerializer(serializers.ModelSerializer):
     images = CustomerPanelGymImageSerializer(source='gymimage_set', many=True, read_only=True)
     banners = CustomerPanelGymBannerSerializer(source='gymbanner_set', many=True, read_only=True)

@@ -7,8 +7,8 @@ urlpatterns = [
     # <=================== Customer Views ===================>
     path('customer/gyms/', views.CustomerPanelGymList.as_view(), name='customer-gym-list'),
     path('customer/gyms/<int:pk>/', views.CustomerPanelGymDetail.as_view(), name='customer-gym-detail'),
-    path('customer/gyms/signed/', views.CustomerPanelCurrentGymList.as_view(), name='customer-gym-list-signed'),
-    path('customer/gyms/signed/<int:pk>/', views.CustomerPanelCurrentGymDetail.as_view(), name='customer-gym-signed'),
+    path('customer/gyms/signed/', views.CustomerPanelSingedGymList.as_view(), name='customer-gym-list-signed'),
+    path('customer/gyms/signed/<int:pk>/', views.CustomerPanelSignedGymDetail.as_view(), name='customer-gym-signed'),
     path('customer/gyms/enter-request/', views.CustomerPanelRequestGymEntry.as_view(),
          name='customer-gym-enter-request'),
     path('customer/memberships/', views.CustomerPanelMembershipListView.as_view(), name='customer-membership-list'),
