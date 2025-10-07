@@ -181,6 +181,18 @@ class CustomerPanelGymSerializer(serializers.ModelSerializer):
         return CustomerPanelMemberShipSerializer(memberships, many=True).data
 
 
+class CustomerPanelInOutSerializer(serializers.ModelSerializer):
+    gym = serializers.SlugRelatedField(read_only=True, slug_field='title')
+    subscription = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InOut
+        fields = ['gym', 'closet', 'enter_time', 'out_time', 'subscription']
+
+    def get_subscription(self, obj):
+        return obj.subscription
+
+
 # <=================== Gym Views ===================>
 class GymPanelGymImageSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)

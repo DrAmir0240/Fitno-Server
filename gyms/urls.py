@@ -16,6 +16,7 @@ urlpatterns = [
          name='customer-membership-detail'),
     path('customer/memberships/sign-up/', views.CustomerMembershipSignUp.as_view(),
          name='customer-membership-sign-up'),
+    path('customer/in-out/', views.CustomerPanelInOutList.as_view(), name='customer-in-out-list'),
 
     # <=================== Gym Views ===================>
     path('gym-panel/gyms/', views.GymPanelGym.as_view(), name='gym-panel-gym'),

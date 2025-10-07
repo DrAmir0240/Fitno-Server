@@ -10,7 +10,7 @@ from gyms.models import Gym, MemberShip, InOut, MemberShipType, GymBanner
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
     CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
     GymPanelGymSerializer, GymChoicesSerializer, GymPanelMemberShipTypeSerializer, GymPanelGymBannerSerializer, \
-    CustomerPanelSignedGymListSerializer
+    CustomerPanelSignedGymListSerializer, CustomerPanelInOutSerializer
 
 
 # Create your views here.
@@ -180,6 +180,19 @@ class CustomerMembershipSignUp(generics.CreateAPIView):
     serializer_class = CustomerPanelMemberShipCreateSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
+
+
+class CustomerPanelInOutList(generics.ListAPIView):
+    serializer_class = CustomerPanelInOutSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        if hasattr(self.request.user, "customer"):
+            customer = self.request.user.customer
+            qs = InOut.objects.filter(customer=customer, confirm_in=True)
+            return qs
+        return None
 
 
 # <=================== Gym Views ===================>
