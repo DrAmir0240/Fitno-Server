@@ -12,6 +12,7 @@ class Gym(models.Model):
     location = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField()
     main_img = models.ImageField(upload_to='gym_img/main_imgs')
+    balance = models.IntegerField(default=0)
     phone = models.CharField(max_length=50)
     headline_phone = models.CharField(max_length=50)
     gender = models.CharField(max_length=50,

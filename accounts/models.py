@@ -83,7 +83,6 @@ class GymManager(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='gym_manager')
     national_code = models.CharField(max_length=50, blank=True, null=True)
     verification_code = models.CharField(max_length=100, blank=True, null=True)
-    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     city = models.CharField(max_length=255, blank=True, null=True)
     invitation_code = models.CharField(max_length=100, blank=True, null=True)
 
