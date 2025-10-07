@@ -3,6 +3,7 @@ from rest_framework import serializers
 from gyms.models import Gym, MemberShip, MemberShipType, InOut, GymImage, GymBanner
 
 
+# <=================== Customer Views ===================>
 class CustomerPanelMemberShipTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MemberShipType
@@ -144,3 +145,53 @@ class CustomerPanelGymSerializer(serializers.ModelSerializer):
             return []
         memberships = obj.memberships.filter(customer=customer)
         return CustomerPanelMemberShipSerializer(memberships, many=True).data
+
+
+# <=================== Gym Views ===================>
+class GymPanelGymImageSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = GymImage
+        fields = ['id', 'image']
+
+
+class GymPanelGymSerializer(serializers.ModelSerializer):
+    images = GymPanelGymImageSerializer(source='gymimage_set', many=True, required=False)
+
+    class Meta:
+        model = Gym
+        fields = [
+            'id', 'title', 'location', 'address', 'main_img', 'phone',
+            'headline_phone', 'gender', 'commission_type', 'facilities',
+            'description', 'work_hours_per_day', 'work_days_per_week',
+            'is_active', 'images'
+        ]
+
+    def update(self, instance, validated_data):
+        images_data = validated_data.pop('gymimage_set', [])
+
+        # update main gym fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # handle images
+        existing_images = {img.id: img for img in instance.gymimage_set.all()}
+
+        for img_data in images_data:
+            img_id = img_data.get('id', None)
+            if img_id and img_id in existing_images:
+                # Update existing image
+                existing_images[img_id].image = img_data.get('image', existing_images[img_id].image)
+                existing_images[img_id].save()
+                existing_images.pop(img_id)
+            else:
+                # Create new image
+                GymImage.objects.create(gym=instance, **img_data)
+
+        # Delete removed images
+        for remaining_img in existing_images.values():
+            remaining_img.delete()
+
+        return instance

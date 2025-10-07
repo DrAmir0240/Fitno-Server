@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from accounts.auth import CustomJWTAuthentication
 from gyms.models import Gym, MemberShip, InOut, MemberShipType
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
-    CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer
+    CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
+    GymPanelGymSerializer
 
 
 # Create your views here.
@@ -175,3 +176,28 @@ class CustomerMembershipSignUp(generics.CreateAPIView):
     serializer_class = CustomerPanelMemberShipCreateSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
+
+
+# <=================== Gym Views ===================>
+class GymPanelGymEdit(generics.RetrieveUpdateAPIView):
+    """
+    {
+  "title": "باشگاه فیتنو جدید",
+  "description": "به‌روز شده توسط مدیر",
+  "images": [
+    {"id": 2, "image": "data:image/png;base64,..."},  // ویرایش تصویر
+    {"image": "data:image/png;base64,..."}             // اضافه کردن تصویر جدید
+  ]
+}
+اگر ID تصویری رو نفرستی و فقط image بدی → تصویر جدید ساخته میشه.
+اگر ID تصویر رو نفرستی ولی اون تصویر دیگه در لیست نباشه → حذف میشه.
+    """
+    serializer_class = GymPanelGymSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Gym.objects.filter(manager__user=self.request.user)
+
+    def perform_update(self, serializer):
+        gym = serializer.save()
+        return gym

@@ -14,4 +14,7 @@ urlpatterns = [
          name='customer-membership-detail'),
     path('customer/memberships/sign-up/', views.CustomerMembershipSignUp.as_view(),
          name='customer-membership-sign-up'),
+    # <=================== Gym Views ===================>
+    path('gym-panel/gyms/<int:pk>/', views.GymPanelGymEdit.as_view(), name='gym-panel-gym-detail'),
+
 ]
