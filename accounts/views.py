@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.utils.timezone import now
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -11,9 +12,9 @@ from Fitno import settings
 from accounts.auth import CustomJWTAuthentication
 from accounts.models import Customer, GymManager
 from accounts.permissions import IsGymManager
-from accounts.serializers import CustomerRegisterSerializer, CustomerLoginSerializer, GymManagerSerializer, \
-    GymSerializer, UserRoleStatusSerializer, CustomerProfileSerializer
-from gyms.models import Gym
+from accounts.serializers import CustomerRegisterSerializer, PasswordLoginSerializer, GymManagerSerializer, \
+    GymSerializer, UserRoleStatusSerializer, CustomerProfileSerializer, GymPanelCustomerListSerializer
+from gyms.models import Gym, MemberShip
 
 
 # Create your views here.
@@ -73,7 +74,7 @@ class LogoutView(generics.GenericAPIView):
 
 
 class LoginView(generics.GenericAPIView):
-    serializer_class = CustomerLoginSerializer
+    serializer_class = PasswordLoginSerializer
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -231,8 +232,21 @@ class GymCreateView(generics.CreateAPIView):
     authentication_classes = [CustomJWTAuthentication]
 
 
-class TestView(generics.ListAPIView):
-    queryset = Customer.objects.all()
-    serializer_class = CustomerRegisterSerializer
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [CustomJWTAuthentication]
+class GymPanelCustomerListView(generics.ListAPIView):
+    serializer_class = GymPanelCustomerListSerializer
+    permission_classes = [IsGymManager, IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if hasattr(user, 'gym_manager'):
+            gym_manager = user.gym_manager
+
+            active_memberships = MemberShip.objects.filter(
+                gym__manager=gym_manager,
+                is_active=True,
+                end_date__gte=now().date()
+            ).select_related('customer__user')
+
+            customer_ids = active_memberships.values_list('customer_id', flat=True).distinct()
+            return Customer.objects.filter(id__in=customer_ids).select_related('user')
+        return Customer.objects.none()

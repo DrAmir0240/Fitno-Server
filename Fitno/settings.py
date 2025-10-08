@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'communications',
 
     # third party apps
-    'rest_framework',
+    'rest_framework', 'channels',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_ratelimit', 'corsheaders',
@@ -90,7 +90,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Fitno.wsgi.application'
-
+ASGI_APPLICATION = 'Fitno.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -181,6 +181,14 @@ CACHES = {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
     }
+}
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get("REDIS_URL")],
+        },
+    },
 }
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(seconds=72600),

@@ -5,6 +5,7 @@ from accounts.models import Customer, User, GymManager
 from gyms.models import Gym
 
 
+# <=================== User Views ===================>
 class UserRoleStatusSerializer(serializers.Serializer):
     is_authenticated = serializers.BooleanField()
     name = serializers.CharField(allow_null=True)
@@ -13,6 +14,26 @@ class UserRoleStatusSerializer(serializers.Serializer):
     is_platform_manager = serializers.BooleanField()
 
 
+class PasswordLoginSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=11)
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        phone = attrs.get("phone")
+        password = attrs.get("password")
+
+        user = authenticate(phone=phone, password=password)
+        if not user:
+            raise serializers.ValidationError("شماره یا پسورد اشتباه است.")
+
+        if not hasattr(user, "customer"):
+            raise serializers.ValidationError("این کاربر مشتری نیست.")
+
+        attrs["user"] = user
+        return attrs
+
+
+# <=================== Customer Views ===================>
 class CustomerRegisterSerializer(serializers.ModelSerializer):
     # فیلدهای یوزر
     phone = serializers.CharField(max_length=11, write_only=True)
@@ -122,30 +143,12 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
         return instance
 
 
-class CustomerLoginSerializer(serializers.Serializer):
-    phone = serializers.CharField(max_length=11)
-    password = serializers.CharField(write_only=True)
-
-    def validate(self, attrs):
-        phone = attrs.get("phone")
-        password = attrs.get("password")
-
-        user = authenticate(phone=phone, password=password)
-        if not user:
-            raise serializers.ValidationError("شماره یا پسورد اشتباه است.")
-
-        if not hasattr(user, "customer"):
-            raise serializers.ValidationError("این کاربر مشتری نیست.")
-
-        attrs["user"] = user
-        return attrs
-
-
+# <=================== Gym Views ===================>
 class GymManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = GymManager
-        fields = ['id', 'national_code', 'verification_code','city', 'invitation_code']
-        read_only_fields = ['id',]
+        fields = ['id', 'national_code', 'verification_code', 'city', 'invitation_code']
+        read_only_fields = ['id', ]
 
     def create(self, validated_data):
         # یوزر از کانتکست گرفته میشه
@@ -170,3 +173,24 @@ class GymSerializer(serializers.ModelSerializer):
         if not gym_manager:
             raise serializers.ValidationError("این کاربر مدیر باشگاه نیست.")
         return Gym.objects.create(manager=gym_manager, **validated_data)
+
+
+class GymPanelCustomerListSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='user.full_name')
+    phone = serializers.CharField(source='user.phone')
+    email = serializers.EmailField(source='user.email')
+
+    class Meta:
+        model = Customer
+        fields = [
+            'id',
+            'full_name',
+            'phone',
+            'email',
+            'profile_photo',
+            'national_code',
+            'city',
+            'gender',
+            'balance',
+        ]
+# <=================== Admin Views ===================>

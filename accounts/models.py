@@ -1,9 +1,11 @@
 import secrets
-
+import requests
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
+from Fitno import settings
 from accounts.managers import CustomUserManager
 
 
@@ -56,6 +58,63 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.phone
+
+
+class OTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otps')
+    code = models.CharField(max_length=5)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_valid(self):
+        return timezone.now() <= self.expires_at
+
+    def send_otp(self, phone):
+        url = "https://edge.ippanel.com/v1/api/send"
+        api_key = settings.FARAZ_API_KEY
+        otp_code = str(secrets.randbelow(100000)).zfill(5)
+        phone = '+98' + phone[1:]  # فرمت شماره تلفن
+        headers = {
+            "Authorization": api_key,
+            "Content-Type": "application/json"
+        }
+        print(phone)
+        print(otp_code)
+        message = f"به فیتنو خوش آمدید\nبزرگترین پلتفرم مدیریت باشگاه های ورزشی در ایران\nـــــــ\nکد شما: {otp_code}"
+        print(message)
+        payload = {
+            "sending_type": "webservice",
+            "from_number": "+983000505",  # شماره فرستنده
+            "message": message,
+            "params": {
+                "recipients": [phone, ]
+            }
+        }
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            print(f"Status Code: {response.status_code}")
+            print(f"Response Headers: {response.headers}")
+            print(f"Response Body: {response.text}")
+
+            try:
+                response_json = response.json()
+                print(f"Response JSON: {response_json}")
+
+                # گرفتن status از داخل meta
+                meta = response_json.get("meta", {})
+                status_ok = meta.get("status") is True
+
+                if status_ok:
+                    print(f"OTP for {phone}: {otp_code}")
+                    return True, "پیامک با موفقیت ارسال شد"
+                else:
+                    return False, f"خطا در ارسال پیامک: {meta.get('message', 'نامشخص')}"
+            except ValueError:
+                print("Response is not valid JSON")
+                return False, "خطا در ارسال پیامک: پاسخ API معتبر نیست"
+        except requests.exceptions.RequestException as e:
+            print(f"Request Error: {str(e)}")
+            return False, f"خطا در ارتباط با سرویس پیامک: {str(e)}"
 
 
 class Customer(models.Model):
