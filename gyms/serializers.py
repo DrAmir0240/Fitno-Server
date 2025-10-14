@@ -309,3 +309,10 @@ class GymPanelGymBannerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("شما اجازه افزودن بنر برای این باشگاه را ندارید.")
 
         return value
+
+
+# <=================== Admin Views ===================>
+class AdminPanelGymListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Gym
+        fields = ['id', 'title', 'main_img']

@@ -29,4 +29,7 @@ urlpatterns = [
          name='banner'),
     path('gym-panel/banner/<int:pk>/', views.GymPanelGymBannerDetail.as_view(),
          name='banner-detail'),
+    # <=================== Admin Views ===================>
+    path('admin-panel/gyms/', views.AdminPanelGymList.as_view(), name='admin-panel-gym'),
+
 ]

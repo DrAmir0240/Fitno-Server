@@ -5,7 +5,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from accounts.auth import CustomJWTAuthentication
-from accounts.permissions import IsGymManager
+from accounts.permissions import IsGymManager, IsPlatformAdmin
 from gyms.models import Gym, MemberShip, InOut, MemberShipType, GymBanner
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
     CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
@@ -276,3 +276,11 @@ class GymPanelGymBannerDetail(generics.RetrieveUpdateDestroyAPIView):
         فقط بنرهای متعلق به باشگاه‌های مدیر فعلی
         """
         return GymBanner.objects.filter(gym__manager__user=self.request.user)
+
+
+# <=================== Admin Views ===================>
+class AdminPanelGymList(generics.ListAPIView):
+    queryset = Gym.objects.all()
+    serializer_class = GymPanelGymSerializer
+    permission_classes = [IsAuthenticated, IsPlatformAdmin]
+    authentication_classes = [CustomJWTAuthentication]
