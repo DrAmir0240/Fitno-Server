@@ -10,7 +10,7 @@ from gyms.models import Gym, MemberShip, InOut, MemberShipType, GymBanner
 from gyms.serializers import CustomerPanelGymSerializer, CustomerPanelMembershipSerializer, \
     CustomerPanelInOutRequestSerializer, CustomerPanelGymSerializer, CustomerPanelMemberShipCreateSerializer, \
     GymPanelGymSerializer, GymChoicesSerializer, GymPanelMemberShipTypeSerializer, GymPanelGymBannerSerializer, \
-    CustomerPanelSignedGymListSerializer, CustomerPanelInOutSerializer
+    CustomerPanelSignedGymListSerializer, CustomerPanelInOutSerializer, AdminPanelGymListSerializer
 
 
 # Create your views here.
@@ -281,6 +281,6 @@ class GymPanelGymBannerDetail(generics.RetrieveUpdateDestroyAPIView):
 # <=================== Admin Views ===================>
 class AdminPanelGymList(generics.ListAPIView):
     queryset = Gym.objects.all()
-    serializer_class = GymPanelGymSerializer
+    serializer_class = AdminPanelGymListSerializer
     permission_classes = [IsAuthenticated, IsPlatformAdmin]
     authentication_classes = [CustomJWTAuthentication]
