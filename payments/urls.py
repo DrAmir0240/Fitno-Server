@@ -11,4 +11,15 @@ urlpatterns = [
          name='gym-deposits-transactions'),
     path('gym-panel/transactions/withdrawals/', views.GymPanelWithdrawalTransactions.as_view(),
          name='gym-withdrawal-transactions'),
+
+    # <=================== Admin Views ===================>
+    path('admin-panel/transactions/in/', views.AdminPanelInTransactionList.as_view(),
+         name='admin-in-transactions'),
+    path('admin-panel/transactions/out/', views.AdminPanelOutTransactionList.as_view(),
+         name='admin-out-transactions'),
+    path('admin-panel/transactions/commissions/', views.AdminPanelCommissionTransactionList.as_view(),
+         name='admin-out-transactions'),
+    path('admin-panel/transactions/<int:pk>/', views.AdminPanelTransactionDetail.as_view(),
+         name='admin-transaction-detail'),
+
 ]

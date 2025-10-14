@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -21,8 +20,10 @@ class Migration(migrations.Migration):
                 ('payment_method', models.CharField(blank=True, max_length=100, null=True)),
                 ('online_transaction', models.CharField(blank=True, max_length=255, null=True)),
                 ('price', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
-                ('payer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='transactions_paid', to=settings.AUTH_USER_MODEL)),
-                ('receiver', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='transactions_received', to=settings.AUTH_USER_MODEL)),
+                ('payer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL,
+                                            related_name='transactions_paid', to=settings.AUTH_USER_MODEL)),
+                ('receiver', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL,
+                                               related_name='transactions_received', to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]
