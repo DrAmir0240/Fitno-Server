@@ -158,6 +158,14 @@ AWS_SECRET_ACCESS_KEY = LIARA_SECRET_KEY
 AWS_STORAGE_BUCKET_NAME = LIARA_BUCKET_NAME
 AWS_S3_ENDPOINT_URL = LIARA_ENDPOINT
 AWS_S3_REGION_NAME = 'us-east-1'
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'COERCE_DECIMAL_TO_STRING': False,
