@@ -1,25 +1,31 @@
+import secrets
+from datetime import timedelta
+
 from django.shortcuts import render
+from django.utils import timezone
 from django.utils.timezone import now
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from Fitno import settings
 from accounts.auth import CustomJWTAuthentication
-from accounts.models import Customer, GymManager
+from accounts.models import Customer, GymManager, OTP, User, APIKey
 from accounts.permissions import IsGymManager
 from accounts.serializers import CustomerRegisterSerializer, PasswordLoginSerializer, GymManagerSerializer, \
-    GymSerializer, UserRoleStatusSerializer, CustomerProfileSerializer, GymPanelCustomerListSerializer
+    GymSerializer, UserRoleStatusSerializer, CustomerProfileSerializer, GymPanelCustomerListSerializer, \
+    VerifyOTPSerializer, VerifyOTPResponseSerializer, RequestOTPSerializer, RequestOTPResponseSerializer
 from gyms.models import Gym, MemberShip
 
 
 # Create your views here.
 # <=================== User Views ===================>
-
 class UserRoleStatusView(generics.GenericAPIView):
     serializer_class = UserRoleStatusSerializer
     permission_classes = [AllowAny]  # می‌تونی بذاری IsAuthenticated اگه فقط برای لاگین‌ها بخوای
@@ -124,6 +130,128 @@ class LoginView(generics.GenericAPIView):
         return response
 
 
+class RequestOTPView(APIView):
+    throttle_classes = [AnonRateThrottle]
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=RequestOTPSerializer,
+        responses={
+            200: RequestOTPResponseSerializer,
+            400: RequestOTPResponseSerializer,
+            403: RequestOTPResponseSerializer,
+            500: RequestOTPResponseSerializer
+        },
+        description="ارسال درخواست OTP با شماره موبایل"
+    )
+    def post(self, request):
+        phone = request.data.get('phone')
+        if not phone:
+            return Response(
+                {"error": "شماره موبایل الزامی است"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user = User.objects.filter(phone=phone).first()
+        if not user:
+            return Response(
+                {"error": "این شماره وجود ندارد"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        OTP.objects.filter(user=user).delete()
+        otp_code = str(secrets.randbelow(100000)).zfill(5)
+        print(otp_code)
+        expires_at = timezone.now() + timedelta(minutes=2)
+        otp = OTP.objects.create(user=user, code=otp_code, expires_at=expires_at)
+        success, message = otp.send_otp(phone=phone, otp_code=otp_code)
+        if not success:
+            return Response(
+                {"error": f"خطا در ارسال OTP: {message}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        return Response(
+            {"message": "لطفاً کد OTP را وارد کنید"},
+            status=status.HTTP_200_OK
+        )
+
+
+class VerifyOTPView(APIView):
+    throttle_classes = [AnonRateThrottle]
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=VerifyOTPSerializer,
+        responses={
+            200: VerifyOTPResponseSerializer,
+            400: VerifyOTPResponseSerializer,
+            403: VerifyOTPResponseSerializer,
+            404: VerifyOTPResponseSerializer
+        },
+        description="تأیید کد OTP و دریافت توکن‌های دسترسی"
+    )
+    def post(self, request):
+        # (بقیه کد همونیه که فرستادی)
+        api_key = request.headers.get('X-API-Key')
+        if not api_key or not APIKey.objects.filter(key=api_key, is_active=True).exists():
+            return Response(
+                {"error": "Invalid API Key"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        phone = request.data.get('phone')
+        code = request.data.get('code')
+        if not phone or not code:
+            return Response(
+                {"error": "Phone Parents and OTP code are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            user = User.objects.get(phone=phone)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            otp = OTP.objects.filter(user=user).latest('created_at')
+            if otp.code != code or not otp.is_valid():
+                return Response(
+                    {"error": "Invalid or expired OTP"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            otp.delete()
+            if not user.is_active:
+                user.is_active = True
+                user.save()
+        except OTP.DoesNotExist:
+            return Response(
+                {"error": "No OTP found"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        response = Response(
+            {"message": "Login successful"},
+            status=status.HTTP_200_OK
+        )
+        response.set_cookie(
+            key='access_token',
+            value=access_token,
+            httponly=True,
+            secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+            samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+            max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+        )
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            httponly=True,
+            secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+            samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+            max_age=int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+        )
+        return response
+
+
 class RefreshTokenView(generics.GenericAPIView):
     permission_classes = [AllowAny]
 
@@ -157,8 +285,6 @@ class RefreshTokenView(generics.GenericAPIView):
 
 
 # <=================== Customer Views ===================>
-
-# 🔹 ثبت‌نام
 class CustomerRegisterView(generics.CreateAPIView):
     queryset = Customer.objects.all()
     serializer_class = CustomerRegisterSerializer
@@ -207,7 +333,6 @@ class CustomerRegisterView(generics.CreateAPIView):
         return response
 
 
-# 🔹 پروفایل (GET + PATCH)
 class CustomerProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = CustomerProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -218,14 +343,14 @@ class CustomerProfileView(generics.RetrieveUpdateAPIView):
 
 
 # <=================== GymManager Views ===================>
-class GymManagerCreateView(generics.CreateAPIView):
+class GymManagerRegisterView(generics.CreateAPIView):
     queryset = GymManager.objects.all()
     serializer_class = GymManagerSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [CustomJWTAuthentication]
 
 
-class GymCreateView(generics.CreateAPIView):
+class FirstGymAddView(generics.CreateAPIView):
     queryset = Gym.objects.all()
     serializer_class = GymSerializer
     permission_classes = [IsGymManager]

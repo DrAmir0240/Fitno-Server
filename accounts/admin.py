@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from accounts.models import APIKey, PlatformSettings, PlatformManager, Customer, User, GymManager
+from accounts.models import APIKey, PlatformSettings, PlatformManager, Customer, User, GymManager, OTP
 
 
 # Register your models here.
@@ -21,6 +21,13 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    class Meta:
+        list_display = '__all__'
+        search_fields = '__all__'
+
+
+@admin.register(OTP)
+class OTPAdmin(admin.ModelAdmin):
     class Meta:
         list_display = '__all__'
         search_fields = '__all__'

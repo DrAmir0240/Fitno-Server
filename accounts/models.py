@@ -4,7 +4,6 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
-
 from Fitno import settings
 from accounts.managers import CustomUserManager
 
@@ -69,10 +68,9 @@ class OTP(models.Model):
     def is_valid(self):
         return timezone.now() <= self.expires_at
 
-    def send_otp(self, phone):
+    def send_otp(self, phone, otp_code):
         url = "https://edge.ippanel.com/v1/api/send"
         api_key = settings.FARAZ_API_KEY
-        otp_code = str(secrets.randbelow(100000)).zfill(5)
         phone = '+98' + phone[1:]  # فرمت شماره تلفن
         headers = {
             "Authorization": api_key,

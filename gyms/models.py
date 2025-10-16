@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 
-from accounts.models import Customer, GymManager
+from accounts.models import Customer, GymManager, User
 from payments.models import Transaction
 
 
@@ -57,6 +57,15 @@ class GymBanner(models.Model):
 
     def __str__(self):
         return self.title + " for:" + self.gym.title
+
+
+class GymSecretary(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='gym_secretary')
+    national_code = models.CharField(max_length=50, blank=True, null=True)
+    gym = models.ForeignKey(Gym, on_delete=models.CASCADE, related_name='gym_secretary')
+
+    def __str__(self):
+        return self.user.full_name
 
 
 class MemberShipType(models.Model):

@@ -6,6 +6,11 @@ class IsGymManager(BasePermission):
         return request.user.is_authenticated and hasattr(request.user, 'gym_manager')
 
 
+class IsGymSecretary(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and hasattr(request.user, 'gym_secretary')
+
+
 class IsPlatformAdmin(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and hasattr(request.user, 'platform_manager')
