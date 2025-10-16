@@ -17,10 +17,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from Fitno import settings
 from accounts.auth import CustomJWTAuthentication
 from accounts.models import Customer, GymManager, OTP, User, APIKey
-from accounts.permissions import IsGymManager
+from accounts.permissions import IsGymManager, IsPlatformAdmin
 from accounts.serializers import CustomerRegisterSerializer, PasswordLoginSerializer, GymManagerSerializer, \
     GymSerializer, UserRoleStatusSerializer, CustomerProfileSerializer, GymPanelCustomerListSerializer, \
-    VerifyOTPSerializer, VerifyOTPResponseSerializer, RequestOTPSerializer, RequestOTPResponseSerializer
+    VerifyOTPSerializer, VerifyOTPResponseSerializer, RequestOTPSerializer, RequestOTPResponseSerializer, \
+    AdminPanelCustomerDetailSerializer, GymPanelCustomerDetailSerializer
 from gyms.models import Gym, MemberShip
 
 
@@ -360,18 +361,54 @@ class FirstGymAddView(generics.CreateAPIView):
 class GymPanelCustomerListView(generics.ListAPIView):
     serializer_class = GymPanelCustomerListSerializer
     permission_classes = [IsGymManager, IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
 
     def get_queryset(self):
         user = self.request.user
-        if hasattr(user, 'gym_manager'):
-            gym_manager = user.gym_manager
+        if hasattr(user, 'gym_secretary'):
+            gym = user.gym_secretary.gym
+            return Customer.objects.filter(memberships__gym=gym).distinct()
 
-            active_memberships = MemberShip.objects.filter(
-                gym__manager=gym_manager,
-                is_active=True,
-                end_date__gte=now().date()
-            ).select_related('customer__user')
+        elif hasattr(user, 'gym_manager'):
+            gyms = user.gym_manager.gyms.all()
+            return Customer.objects.filter(memberships__gym__in=gyms).distinct()
 
-            customer_ids = active_memberships.values_list('customer_id', flat=True).distinct()
-            return Customer.objects.filter(id__in=customer_ids).select_related('user')
         return Customer.objects.none()
+
+
+class GymPanelCustomerDetailView(generics.RetrieveAPIView):
+    serializer_class = GymPanelCustomerDetailSerializer
+    permission_classes = [IsGymManager]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if hasattr(user, 'gym_secretary'):
+            gym = user.gym_secretary.gym
+            return Customer.objects.filter(memberships__gym=gym).distinct()
+
+        elif hasattr(user, 'gym_manager'):
+            gyms = user.gym_manager.gyms.all()
+            return Customer.objects.filter(memberships__gym__in=gyms).distinct()
+
+        return Customer.objects.none()
+
+
+# <=================== Admin Views ===================>
+class AdminPanelCustomerListView(generics.ListAPIView):
+    queryset = Customer.objects.all()
+    serializer_class = GymPanelCustomerListSerializer
+    permission_classes = [IsPlatformAdmin]
+
+
+class AdminPanelCustomerDetailView(generics.RetrieveDestroyAPIView):
+    """
+    نمایش جزئیات کامل مشتری شامل اطلاعات کاربری،
+    اشتراک‌ها، ورود و خروج‌ها، باشگاه‌های بلاک‌شده و امتیازات
+    """
+    queryset = Customer.objects.select_related('user').prefetch_related(
+        'memberships__gym', 'inouts__gym', 'blocked_gyms__gym', 'rates__gym'
+    )
+    serializer_class = AdminPanelCustomerDetailSerializer
+    permission_classes = [IsPlatformAdmin]

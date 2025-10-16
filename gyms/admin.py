@@ -1,11 +1,32 @@
 from django.contrib import admin
-
-from gyms.models import Gym, MemberShipType, MemberShip, Closet, InOut, BlockList, Rate
+from gyms.models import Gym, MemberShipType, MemberShip, Closet, InOut, BlockList, Rate, GymBanner, GymImage, \
+    GymSecretary
 
 
 # Register your models here.
 @admin.register(Gym)
 class GymAdmin(admin.ModelAdmin):
+    class Meta:
+        list_display = '__all__'
+        search_fields = '__all__'
+
+
+@admin.register(GymBanner)
+class GymBannerAdmin(admin.ModelAdmin):
+    class Meta:
+        list_display = '__all__'
+        search_fields = '__all__'
+
+
+@admin.register(GymImage)
+class GymImageAdmin(admin.ModelAdmin):
+    class Meta:
+        list_display = '__all__'
+        search_fields = '__all__'
+
+
+@admin.register(GymSecretary)
+class GymSecretaryAdmin(admin.ModelAdmin):
     class Meta:
         list_display = '__all__'
         search_fields = '__all__'

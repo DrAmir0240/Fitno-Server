@@ -19,5 +19,12 @@ urlpatterns = [
     path('gym-manager/upgrade/', views.GymManagerRegisterView.as_view(), name='gym-manager-upgrade'),
     path('gym-manager/add-gym/', views.FirstGymAddView.as_view(), name='add-gym'),
     path('gym-panel/customers/', views.GymPanelCustomerListView.as_view(), name='gym-customers'),
+    path('gym-panel/customers/<int:pk>', views.GymPanelCustomerDetailView.as_view(),
+         name='gym-customers-detail'),
+
+    # <=================== Admin Views ===================>
+    path('admin-panel/customers/', views.AdminPanelCustomerListView.as_view(), name='admin-customers'),
+    path('admin-panel/customers/<int:pk>/', views.AdminPanelCustomerDetailView.as_view(),
+         name='admin-customers-detail'),
 
 ]

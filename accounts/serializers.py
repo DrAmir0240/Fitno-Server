@@ -1,8 +1,9 @@
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import Customer, User, GymManager
-from gyms.models import Gym
+from gyms.models import Gym, MemberShip, InOut, BlockList, Rate
 
 
 # <=================== User Views ===================>
@@ -198,6 +199,7 @@ class GymPanelCustomerListSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='user.full_name')
     phone = serializers.CharField(source='user.phone')
     email = serializers.EmailField(source='user.email')
+    is_active = serializers.SerializerMethodField()
 
     class Meta:
         model = Customer
@@ -205,10 +207,202 @@ class GymPanelCustomerListSerializer(serializers.ModelSerializer):
             'id',
             'full_name',
             'phone',
+            'is_active',
             'email',
             'profile_photo',
             'national_code',
             'city',
             'gender',
         ]
+
+    def get_is_active(self, obj):
+        """بررسی فعال بودن ممبرشیپ مشتری در باشگاه‌های متعلق به منشی یا مدیر"""
+        user = self.context['request'].user
+        today = timezone.now().date()
+
+        # 🎯 استخراج باشگاه‌هایی که این کاربر (مدیر یا منشی) در آنها فعاله
+        related_gyms = Gym.objects.none()
+
+        # اگه مدیر باشگاهه
+        if hasattr(user, 'gym_manager'):
+            related_gyms = Gym.objects.filter(manager=user.gym_manager)
+
+        # اگه منشی باشگاهه
+        elif hasattr(user, 'gym_secretary'):
+            related_gyms = Gym.objects.filter(id=user.gym_secretary.gym.id)
+
+        # بررسی ممبرشیپ‌های معتبر مرتبط با اون باشگاه‌ها
+        active_memberships = obj.memberships.filter(
+            gym__in=related_gyms,
+            validity_date__gte=today,  # تاریخ هنوز تموم نشده
+            session_left__gt=0  # جلسه باقی مونده
+        )
+
+        return active_memberships.exists()
+
+
+class GymPanelCustomerMemberShipSerializer(serializers.ModelSerializer):
+    gym_title = serializers.CharField(source='gym.title', read_only=True)
+    type_title = serializers.CharField(source='type.title', read_only=True)
+
+    class Meta:
+        model = MemberShip
+        fields = ['id', 'gym_title', 'type_title', 'start_date', 'validity_date', 'is_active']
+
+
+class GymPanelCustomerInOutSerializer(serializers.ModelSerializer):
+    gym_title = serializers.CharField(source='gym.title', read_only=True)
+
+    class Meta:
+        model = InOut
+        fields = ['id', 'gym_title', 'enter_time', 'out_time', 'confirm_in']
+
+
+class GymPanelCustomerDetailSerializer(serializers.ModelSerializer):
+    memberships = GymPanelCustomerMemberShipSerializer(many=True, read_only=True)
+    inouts = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Customer
+        fields = [
+            'id',
+            'user',
+            'profile_photo',
+            'national_code',
+            'city',
+            'gender',
+            'balance',
+            'is_active',
+            'memberships',
+            'inouts',
+        ]
+
+    def get_is_active(self, obj):
+        """بررسی فعال بودن ممبرشیپ مشتری در باشگاه‌های متعلق به منشی یا مدیر"""
+        user = self.context['request'].user
+        today = timezone.now().date()
+
+        # استخراج باشگاه‌های مرتبط با کاربر جاری
+        related_gyms = Gym.objects.none()
+        if hasattr(user, 'gym_manager'):
+            related_gyms = Gym.objects.filter(manager=user.gym_manager)
+        elif hasattr(user, 'gym_secretary'):
+            related_gyms = Gym.objects.filter(id=user.gym_secretary.gym.id)
+
+        # بررسی ممبرشیپ‌های معتبر در همین باشگاه‌ها
+        active_memberships = obj.memberships.filter(
+            gym__in=related_gyms,
+            validity_date__gte=today,
+            session_left__gt=0
+        )
+        return active_memberships.exists()
+
+    def get_inouts(self, obj):
+        """فقط ورود/خروج‌های مربوط به باشگاه‌های مدیر یا منشی"""
+        user = self.context['request'].user
+
+        related_gyms = Gym.objects.none()
+        if hasattr(user, 'gym_manager'):
+            related_gyms = Gym.objects.filter(manager=user.gym_manager)
+        elif hasattr(user, 'gym_secretary'):
+            related_gyms = Gym.objects.filter(id=user.gym_secretary.gym.id)
+
+        inouts = obj.inouts.filter(gym__in=related_gyms).order_by('-enter_time')
+        return GymPanelCustomerInOutSerializer(inouts, many=True).data
+
+
 # <=================== Admin Views ===================>
+class AdminPanelCustomerListSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='user.full_name')
+    phone = serializers.CharField(source='user.phone')
+    email = serializers.EmailField(source='user.email')
+    is_active = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Customer
+        fields = [
+            'id',
+            'full_name',
+            'phone',
+            'is_active',
+            'email',
+            'balance',
+            'profile_photo',
+            'national_code',
+            'city',
+            'gender',
+        ]
+
+    def get_is_active(self, obj):
+        """اگر حداقل یکی از ممبرشیپ‌ها هنوز منقضی نشده و جلسه باقی دارد → True"""
+        today = timezone.now().date()
+        active_memberships = obj.memberships.filter(
+            validity_date__gte=today,  # هنوز منقضی نشده
+            session_left__gt=0  # جلسه باقی مانده دارد
+        )
+        return active_memberships.exists()
+
+
+class AdminPanelCustomerMembershipSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(source='type.title')
+    gym = serializers.CharField(source='gym.title')
+
+    class Meta:
+        model = MemberShip
+        fields = ['title', 'gym', 'start_date', 'validity_date']
+
+
+class AdminPanelCustomerInOutSerializer(serializers.ModelSerializer):
+    gym = serializers.CharField(source='gym.title')
+
+    class Meta:
+        model = InOut
+        fields = ['gym', 'enter_time', 'out_time']
+
+
+class AdminPanelCustomerBlockListSerializer(serializers.ModelSerializer):
+    gym = serializers.CharField(source='gym.title')
+
+    class Meta:
+        model = BlockList
+        fields = ['gym', 'description']
+
+
+class AdminPanelCustomerRateSerializer(serializers.ModelSerializer):
+    gym = serializers.CharField(source='gym.title')
+
+    class Meta:
+        model = Rate
+        fields = ['gym', 'rate']
+
+
+class AdminPanelCustomerDetailSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='user.full_name')
+    phone = serializers.CharField(source='user.phone')
+    is_active = serializers.SerializerMethodField()
+    memberships = AdminPanelCustomerMembershipSerializer(many=True, read_only=True)
+    inouts = AdminPanelCustomerInOutSerializer(many=True, read_only=True)
+    blocked_gyms = AdminPanelCustomerBlockListSerializer(many=True, read_only=True)
+    rates = AdminPanelCustomerRateSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Customer
+        fields = [
+            'id', 'full_name', 'phone', 'is_active', 'city', 'gender', 'balance', 'profile_photo',
+            'memberships', 'inouts', 'blocked_gyms', 'rates'
+        ]
+
+    def get_is_active(self, obj):
+        """اگر حداقل یکی از ممبرشیپ‌ها هنوز منقضی نشده و جلسه باقی دارد → True"""
+        today = timezone.now().date()
+        active_memberships = obj.memberships.filter(
+            validity_date__gte=today,  # هنوز منقضی نشده
+            session_left__gt=0  # جلسه باقی مانده دارد
+        )
+        return active_memberships.exists()
+
+    def destroy(self, instance):
+        instance.is_deleted = True
+        instance.save()
+        return instance
